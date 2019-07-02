@@ -186,23 +186,7 @@
       ],
       "description": "Identifies the unique system identifier for each Azure resource."
     },
-    "UpgradeDetails": {
-      "description": "Details for upgrading vault."
-    },
     "VaultProperties": {
-      "type": "object",
-      "properties": {
-        "upgradeDetails": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/UpgradeDetails"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ]
-        }
-      },
       "description": "Properties of the vault."
     },
     "vaults_certificates_childResource": {

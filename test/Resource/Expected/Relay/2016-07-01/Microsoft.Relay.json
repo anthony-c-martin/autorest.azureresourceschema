@@ -54,17 +54,6 @@
           ],
           "description": "Sku of the Namespace."
         },
-        "properties": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/RelayNamespaceProperties"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ],
-          "description": "Description of Relay Namespace"
-        },
         "resources": {
           "type": "array",
           "items": {
@@ -86,8 +75,7 @@
         "name",
         "type",
         "apiVersion",
-        "location",
-        "properties"
+        "location"
       ],
       "description": "Microsoft.Relay/namespaces"
     },
@@ -581,9 +569,6 @@
         "properties"
       ],
       "description": "Microsoft.Relay/namespaces/WcfRelays"
-    },
-    "RelayNamespaceProperties": {
-      "description": "Properties of the Namespace."
     },
     "Sku": {
       "type": "object",

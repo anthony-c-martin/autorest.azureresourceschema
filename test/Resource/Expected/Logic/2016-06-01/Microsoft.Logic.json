@@ -3290,9 +3290,6 @@
       },
       "description": "The integration account partner content."
     },
-    "ResourceReference": {
-      "description": "The resource reference."
-    },
     "Sku": {
       "type": "object",
       "properties": {
@@ -3314,17 +3311,6 @@
             }
           ],
           "description": "The name."
-        },
-        "plan": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/ResourceReference"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ],
-          "description": "The reference to plan."
         }
       },
       "required": [
@@ -3395,17 +3381,6 @@
             }
           ],
           "description": "The sku."
-        },
-        "integrationAccount": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/ResourceReference"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ],
-          "description": "The integration account."
         },
         "definition": {
           "description": "The definition."

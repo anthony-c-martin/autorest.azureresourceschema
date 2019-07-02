@@ -51,17 +51,6 @@
           ],
           "description": "Porperties of Sku"
         },
-        "properties": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/SBNamespaceProperties"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ],
-          "description": "Properties of the namespace."
-        },
         "resources": {
           "type": "array",
           "items": {
@@ -86,8 +75,7 @@
         "name",
         "type",
         "apiVersion",
-        "location",
-        "properties"
+        "location"
       ],
       "description": "Microsoft.ServiceBus/namespaces"
     },
@@ -975,9 +963,6 @@
         "rights"
       ],
       "description": "AuthorizationRule properties."
-    },
-    "SBNamespaceProperties": {
-      "description": "Properties of the namespace."
     },
     "SBQueueProperties": {
       "type": "object",

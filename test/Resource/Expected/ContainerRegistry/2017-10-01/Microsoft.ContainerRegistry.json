@@ -139,25 +139,13 @@
             }
           ],
           "description": "The tags of the resource."
-        },
-        "properties": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/ReplicationProperties"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ],
-          "description": "The properties of the replication."
         }
       },
       "required": [
         "name",
         "type",
         "apiVersion",
-        "location",
-        "properties"
+        "location"
       ],
       "description": "Microsoft.ContainerRegistry/registries/replications"
     },
@@ -273,25 +261,13 @@
             }
           ],
           "description": "The tags of the resource."
-        },
-        "properties": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/ReplicationProperties"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ],
-          "description": "The properties of the replication."
         }
       },
       "required": [
         "name",
         "type",
         "apiVersion",
-        "location",
-        "properties"
+        "location"
       ],
       "description": "Microsoft.ContainerRegistry/registries/replications"
     },
@@ -389,9 +365,6 @@
         }
       },
       "description": "The properties of a container registry."
-    },
-    "ReplicationProperties": {
-      "description": "The properties of a replication."
     },
     "Sku": {
       "type": "object",

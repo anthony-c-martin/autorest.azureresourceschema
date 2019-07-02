@@ -708,16 +708,6 @@
           "type": "string",
           "description": "A unique read-only string that changes whenever the resource is updated."
         },
-        "properties": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/NetworkWatcherPropertiesFormat"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ]
-        },
         "resources": {
           "type": "array",
           "items": {
@@ -732,8 +722,7 @@
       "required": [
         "name",
         "type",
-        "apiVersion",
-        "properties"
+        "apiVersion"
       ],
       "description": "Microsoft.Network/networkWatchers"
     },
@@ -5081,9 +5070,6 @@
         "properties"
       ],
       "description": "Microsoft.Network/networkSecurityGroups/securityRules"
-    },
-    "NetworkWatcherPropertiesFormat": {
-      "description": "The network watcher properties."
     },
     "networkWatchers_packetCaptures_childResource": {
       "type": "object",

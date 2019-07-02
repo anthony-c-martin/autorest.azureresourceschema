@@ -316,6 +316,12 @@ namespace AutoRest.AzureResourceSchema
         {
             string definitionName = compositeType.Name;
 
+            // If this type has no writable properties, do not process it
+            if (!compositeType.ComposedProperties.Where(p => !p.IsReadOnly).Any())
+            {
+                return null;
+            }
+
             if (!definitions.ContainsKey(definitionName))
             {
                 JsonSchema definition = new JsonSchema()

@@ -106,24 +106,12 @@
             }
           ],
           "description": "Resource tags."
-        },
-        "properties": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/ApplicationSecurityGroupPropertiesFormat"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ],
-          "description": "Properties of the application security group."
         }
       },
       "required": [
         "name",
         "type",
-        "apiVersion",
-        "properties"
+        "apiVersion"
       ],
       "description": "Microsoft.Network/applicationSecurityGroups"
     },
@@ -779,16 +767,6 @@
           "type": "string",
           "description": "A unique read-only string that changes whenever the resource is updated."
         },
-        "properties": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/NetworkWatcherPropertiesFormat"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ]
-        },
         "resources": {
           "type": "array",
           "items": {
@@ -806,8 +784,7 @@
       "required": [
         "name",
         "type",
-        "apiVersion",
-        "properties"
+        "apiVersion"
       ],
       "description": "Microsoft.Network/networkWatchers"
     },
@@ -3250,23 +3227,9 @@
             }
           ],
           "description": "Resource tags."
-        },
-        "properties": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/ApplicationSecurityGroupPropertiesFormat"
-            },
-            {
-              "$ref": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#/definitions/expression"
-            }
-          ],
-          "description": "Properties of the application security group."
         }
       },
       "description": "An application security group in a resource group."
-    },
-    "ApplicationSecurityGroupPropertiesFormat": {
-      "description": "Application security group properties."
     },
     "AuthorizationPropertiesFormat": {
       "type": "object",
@@ -5424,9 +5387,6 @@
         "properties"
       ],
       "description": "Microsoft.Network/networkSecurityGroups/securityRules"
-    },
-    "NetworkWatcherPropertiesFormat": {
-      "description": "The network watcher properties."
     },
     "networkWatchers_connectionMonitors_childResource": {
       "type": "object",
