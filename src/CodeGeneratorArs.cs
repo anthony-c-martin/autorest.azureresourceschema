@@ -16,7 +16,7 @@ namespace AutoRest.AzureResourceSchema
         {
         }
 
-        public override string ImplementationFileExtension => ".json";
+        public override string ImplementationFileExtension => ".cs";
 
         public override string UsageInstructions => $"Your Azure Resource Schema(s) can be found in the specified `output-folder`.";
 
@@ -38,7 +38,7 @@ namespace AutoRest.AzureResourceSchema
                     {
                         ResourceSchemaWriter.Write(stringWriter, resourceSchemas[resourceProvider]);
 
-                        await Write(stringWriter.ToString(), Path.Combine(version, resourceProvider + ".json"), true);
+                        await Write(stringWriter.ToString(), Path.Combine(version, resourceProvider + ".cs"), true);
                     }
                 }
             }

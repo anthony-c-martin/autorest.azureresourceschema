@@ -6,8 +6,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "autorest.azureresourceschem
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "autorest.common", "autorest.common\src\autorest.common.csproj", "{9E857E16-1000-2000-3000-CFA9D292D0B6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "autorest.azureresourceschema.test", "test\autorest.azureresourceschema.test.csproj", "{98180E61-2D1D-1489-90A2-7B675F82E9D8}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,18 +39,6 @@ Global
 		{9E857E16-1000-2000-3000-CFA9D292D0B6}.Release|x64.ActiveCfg = Release|Any CPU
 		{9E857E16-1000-2000-3000-CFA9D292D0B6}.Release|x64.Build.0 = Release|Any CPU
 		{9E857E16-1000-2000-3000-CFA9D292D0B6}.Release|x86.ActiveCfg = Release|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Debug|x64.Build.0 = Debug|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Debug|x86.Build.0 = Debug|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Release|x64.ActiveCfg = Release|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Release|x64.Build.0 = Release|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Release|x86.ActiveCfg = Release|Any CPU
-		{98180E61-2D1D-1489-90A2-7B675F82E9D8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

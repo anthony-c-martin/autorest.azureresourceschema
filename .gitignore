@@ -201,6 +201,9 @@ ClientBin/
 *.publishsettings
 orleans.codegen.cs
 
+# OSX .DS_Store files
+.DS_Store
+
 # Since there are multiple workflows, uncomment next line to ignore bower_components
 # (https://github.com/github/gitignore/pull/1529#issuecomment-104372622)
 #bower_components/
@@ -301,3 +304,4 @@ out/
 schemas/
 tmp/
 code-model-v1
+

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" >
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><PowerShell># 2&gt;nul || type %~df0|C:\Windows\system32\find.exe /v "setlocal"|C:\Windows\system32\find.exe /v "errorlevel"|powershell.exe -noninteractive -&amp; exit %errorlevel% || #</PowerShell></PropertyGroup>
 
   <PropertyGroup>
@@ -52,8 +52,8 @@
   </Target>
 
   <ItemGroup>
-        <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="YamlDotNet.Signed" Version="5.2.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <ProjectReference Include="../autorest.common/src/autorest.common.csproj" />
   </ItemGroup>
 

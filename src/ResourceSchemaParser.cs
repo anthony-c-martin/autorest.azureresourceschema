@@ -11,14 +11,6 @@ using AutoRest.Core.Utilities;
 using System.Text.RegularExpressions;
 using AutoRest.AzureResourceSchema.Models;
 using AutoRest.Core.Logging;
-using System.Security.Cryptography;
-using System.Runtime.CompilerServices;
-using Newtonsoft.Json;
-using System.Collections;
-using System.Drawing;
-using YamlDotNet.Core.Tokens;
-using System.IO;
-using AutoRest.Modeler.Model;
 
 namespace AutoRest.AzureResourceSchema
 {
