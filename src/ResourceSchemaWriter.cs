@@ -52,6 +52,19 @@ namespace AutoRest.AzureResourceSchema
             return Regex.Replace($"{providerNamespace}_{descriptor.ApiVersion}", "[^a-zA-Z0-9_]", "_");
         }
 
+        private static string FormatBicepStringLiteral(string value)
+        {
+            var escaped = value
+                .Replace("\\", "\\\\") // must do this first!
+                .Replace("\r", "\\r")
+                .Replace("\n", "\\n")
+                .Replace("\t", "\\t")
+                .Replace("${", "\\${")
+                .Replace("'", "\\'");
+
+            return $"'{escaped}'";
+        }
+
         static IEnumerable<TypePropertyFlags> GetIndividualFlags(TypePropertyFlags flags)
         {
             if (flags == TypePropertyFlags.None)
@@ -125,7 +138,12 @@ namespace AutoRest.AzureResourceSchema
                     AssignmentExpression(
                         SyntaxKind.SimpleAssignmentExpression,
                         IdentifierName(typeName),
-                        GetTypeCreationSyntax(typeName, schema))));
+                        GetTypeCreationSyntax(typeName, schema, out var containsReference))));
+
+                if (containsReference)
+                {
+                    throw new ArgumentException($"Unsupported $ref directly inside top-level definition {typeName}");
+                }
             }
             
             foreach (var (descriptor, schema) in resources)
@@ -263,7 +281,7 @@ namespace AutoRest.AzureResourceSchema
                         SyntaxKind.ArrayInitializerExpression,
                         SeparatedList<ExpressionSyntax>(
                             typeSegments,
-                            Enumerable.Repeat(Token(SyntaxKind.CommaToken), typeSegments.Length - 1)))));
+                            typeSegments.Skip(1).Select(x => Token(SyntaxKind.CommaToken))))));
                 
             var apiVersionArg = Argument(
                 IdentifierName("ApiVersion"));
@@ -317,7 +335,7 @@ namespace AutoRest.AzureResourceSchema
             }
 
             var additionalPropertiesType = (schema.AdditionalProperties != null) ?
-                GetTypeCreationSyntax("additionalProperties", schema.AdditionalProperties) :
+                GetTypePropertyCreationSyntax("additionalProperties", schema.AdditionalProperties, TypePropertyFlags.None) :
                 LiteralExpression(SyntaxKind.NullLiteralExpression);
 
             return ObjectCreationExpression(
@@ -467,21 +485,19 @@ namespace AutoRest.AzureResourceSchema
                         Token(SyntaxKind.ConstKeyword)}));
         }
 
-        private static ExpressionSyntax GetTypeCreationSyntax(string typeName, JsonSchema schema)
+        private static ExpressionSyntax GetTypeCreationSyntax(string typeName, JsonSchema schema, out bool containsReference)
         {
+            containsReference = false;
+
             switch (schema.JsonType)
             {
                 case "object":
                 case null: // assume object if not specified
-                    return GetObjectTypeCreationSyntax(typeName, schema);
+                    return GetObjectTypeCreationSyntax(typeName, schema, out containsReference);
                 case "array":
-                    return GetArrayTypeCreationSyntax(typeName, schema);
+                    return GetArrayTypeCreationSyntax(typeName, schema, out containsReference);
                 case "string":
-                    // TODO handle enums
-                    return MemberAccessExpression(
-                        SyntaxKind.SimpleMemberAccessExpression,
-                        IdentifierName("LanguageConstants"),
-                        IdentifierName("String"));
+                    return GetStringTypeCreationSyntax(typeName, schema);
                 case "number":
                 case "integer":
                     return MemberAccessExpression(
@@ -498,8 +514,48 @@ namespace AutoRest.AzureResourceSchema
             throw new NotImplementedException($"Unrecognized type '{schema.JsonType}'");
         }
 
-        private static ExpressionSyntax GetArrayTypeCreationSyntax(string typeName, JsonSchema schema)
+        private static ExpressionSyntax GetStringTypeCreationSyntax(string typeName, JsonSchema schema)
         {
+            if (schema.Enum != null)
+            {
+                var enumExpressions = new List<ExpressionSyntax>();
+                foreach (var enumVal in schema.Enum)
+                {
+                    var literalValue = FormatBicepStringLiteral(enumVal);
+
+                    enumExpressions.Add(ObjectCreationExpression(
+                        IdentifierName("StringLiteralType"))
+                    .WithArgumentList(
+                        ArgumentList(
+                            SingletonSeparatedList<ArgumentSyntax>(
+                                Argument(
+                                    LiteralExpression(
+                                        SyntaxKind.StringLiteralExpression,
+                                        Literal(literalValue)))))));
+                }
+
+                return InvocationExpression(
+                    MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        IdentifierName("UnionType"),
+                        IdentifierName("Create")))
+                .WithArgumentList(
+                    ArgumentList(
+                        SeparatedList<ArgumentSyntax>(
+                            enumExpressions.Select(Argument),
+                            enumExpressions.Skip(1).Select(x => Token(SyntaxKind.CommaToken)))));
+            }
+
+            return MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                IdentifierName("LanguageConstants"),
+                IdentifierName("String"));
+        }
+
+        private static ExpressionSyntax GetArrayTypeCreationSyntax(string typeName, JsonSchema schema, out bool containsReference)
+        {
+            containsReference = false;
+
             if (schema.Items == null)
             {
                 return MemberAccessExpression(
@@ -508,7 +564,11 @@ namespace AutoRest.AzureResourceSchema
                     IdentifierName("Array"));
             }
 
-            var itemType = GetTypeCreationSyntax(typeName, schema.Items);
+            containsReference = schema.Items.Ref != null;
+
+            var itemType = containsReference ? 
+                GetReferenceSyntax(schema.Items) : 
+                GetTypeCreationSyntax(typeName, schema.Items, out containsReference);
 
             return ObjectCreationExpression(
                 IdentifierName("TypedArrayType"))
@@ -518,8 +578,22 @@ namespace AutoRest.AzureResourceSchema
                         Argument(itemType))));
         }
 
-        private static ExpressionSyntax GetObjectTypeCreationSyntax(string typeName, JsonSchema schema)
+        private static ExpressionSyntax GetReferenceSyntax(JsonSchema schema)
         {
+            // TODO improve this
+            var definitionName = schema.Ref.Substring("#/definitions/".Length);
+
+            return IdentifierName(definitionName);
+        }
+
+        private static ExpressionSyntax GetObjectTypeCreationSyntax(string typeName, JsonSchema schema, out bool containsReference)
+        {
+            containsReference = schema.Ref != null;
+            if (containsReference)
+            {
+                return GetReferenceSyntax(schema);
+            }
+
             var properties = new List<ExpressionSyntax>();
             if (schema.Properties != null)
             {
@@ -535,17 +609,17 @@ namespace AutoRest.AzureResourceSchema
                 }
             }
 
-            var additionalPropertiesType = (schema.AdditionalProperties != null) ?
-                GetTypeCreationSyntax("additionalProperties", schema.AdditionalProperties) :
-                LiteralExpression(SyntaxKind.NullLiteralExpression);
-
-            if (schema.Properties == null && additionalPropertiesType == null)
+            if (schema.Properties == null && schema.AdditionalProperties == null)
             {
                 return MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     IdentifierName("LanguageConstants"),
                     IdentifierName("Object"));
             }
+
+            var additionalPropertiesType = (schema.AdditionalProperties != null) ?
+                GetTypePropertyCreationSyntax("additionalProperties", schema.AdditionalProperties, TypePropertyFlags.None) :
+                LiteralExpression(SyntaxKind.NullLiteralExpression);
 
             return ObjectCreationExpression(
                 IdentifierName("NamedObjectType"))
@@ -573,35 +647,15 @@ namespace AutoRest.AzureResourceSchema
                                         SeparatedList<ExpressionSyntax>(
                                             properties)))),
                             Token(SyntaxKind.CommaToken),
-                            Argument(additionalPropertiesType),
-                            Token(SyntaxKind.CommaToken),
-                            Argument(
-                                MemberAccessExpression(
-                                    SyntaxKind.SimpleMemberAccessExpression,
-                                    IdentifierName("TypePropertyFlags"),
-                                    IdentifierName("None")))})));
+                            Argument(additionalPropertiesType)})));
         }
 
         private static ExpressionSyntax GetTypePropertyCreationSyntax(string typeName, JsonSchema schema, TypePropertyFlags flags)
         {
-            var isReference = schema.Ref != null;
+            var type = GetTypeCreationSyntax(typeName, schema, out var containsReference);
 
-            string className;
-            ExpressionSyntax type;
-            if (!isReference)
-            {
-                className = "TypeProperty";
-                type = GetTypeCreationSyntax(typeName, schema);
-            }
-            else
-            {
-                // TODO improve this
-                var definitionName = schema.Ref.Substring("#/definitions/".Length);
-                
-                className = "LazyTypeProperty";
-                type = ParenthesizedLambdaExpression(
-                    IdentifierName(definitionName));
-            }
+            var className = containsReference ? "LazyTypeProperty" : "TypeProperty";
+            ExpressionSyntax typeArgument = containsReference ? ParenthesizedLambdaExpression(type) : type;
 
             return ObjectCreationExpression(
                 IdentifierName(className))
@@ -614,7 +668,7 @@ namespace AutoRest.AzureResourceSchema
                                     SyntaxKind.StringLiteralExpression,
                                     Literal(typeName))),
                             Token(SyntaxKind.CommaToken),
-                            Argument(type),
+                            Argument(typeArgument),
                             Token(SyntaxKind.CommaToken),
                             Argument(BuildFlagsExpression(flags))})));
         }
