@@ -51,6 +51,8 @@ namespace AutoRest.AzureResourceSchema
         /// </summary>
         public string JsonType { get; set; }
 
+        public bool ReadOnly { get; set; }
+
         /// <summary>
         /// Gets or sets the resource type of this JsonSchema.
         /// </summary>

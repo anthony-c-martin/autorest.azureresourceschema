@@ -464,44 +464,45 @@ namespace AutoRest.AzureResourceSchema
 
         private static JsonSchema ParseType(Property property, IModelType type, IDictionary<string, JsonSchema> definitions, IEnumerable<CompositeType> modelTypes)
         {
-            if (property == null || !property.IsReadOnly)
+            // A schema that matches a JSON object with specific properties, such as
+            // { "name": { "type": "string" }, "age": { "type": "number" } }
+            if (type is CompositeType compositeType)
             {
-                // A schema that matches a JSON object with specific properties, such as
-                // { "name": { "type": "string" }, "age": { "type": "number" } }
-                if (type is CompositeType compositeType)
-                {
-                    return ParseCompositeType(property, compositeType, true, definitions, modelTypes);
-                }
-                // A schema that matches a "dictionary" JSON object, such as
-                // { "additionalProperties": { "type": "string" } }
-                if (type is DictionaryType dictionaryType)
-                {
-                    return ParseDictionaryType(property, dictionaryType, definitions, modelTypes);
-                }
-                // A schema that matches a single value from a given set of values, such as
-                // { "enum": [ "a", "b" ] }
-                if (type is EnumType enumType)
-                {
-                    return ParseEnumType(property, enumType);
-                }
-                // A schema that matches simple values, such as { "type": "number" }
-                if (type is PrimaryType primaryType)
-                {
-                    return ParsePrimaryType(property, primaryType);
-                }
-                // A schema that matches an array of values, such as
-                // { "items": { "type": "number" } }
-                if (type is SequenceType sequenceType)
-                {
-                    return ParseSequenceType(property, sequenceType, definitions, modelTypes);
-                }
-                // A schema that matches anything
-                if (type is MultiType)
-                {
-                    return new JsonSchema();
-                }
-                Debug.Fail("Unrecognized property type: " + type.GetType());
+                return ParseCompositeType(property, compositeType, true, definitions, modelTypes);
+            } 
+            // A schema that matches a "dictionary" JSON object, such as
+            // { "additionalProperties": { "type": "string" } }
+            if (type is DictionaryType dictionaryType)
+            {
+                return ParseDictionaryType(property, dictionaryType, definitions, modelTypes);
             }
+            // A schema that matches a single value from a given set of values, such as
+            // { "enum": [ "a", "b" ] }
+            if (type is EnumType enumType)
+            {
+                return ParseEnumType(property, enumType);
+            }
+            // A schema that matches simple values, such as { "type": "number" }
+            if (type is PrimaryType primaryType)
+            {
+                return ParsePrimaryType(property, primaryType);
+            }
+            // A schema that matches an array of values, such as
+            // { "items": { "type": "number" } }
+            if (type is SequenceType sequenceType)
+            {
+                return ParseSequenceType(property, sequenceType, definitions, modelTypes);
+            }
+            // A schema that matches anything
+            if (type is MultiType)
+            {
+                return new JsonSchema
+                {
+                    ReadOnly = property?.IsReadOnly ?? false,
+                };
+            }
+            Debug.Fail("Unrecognized property type: " + type.GetType());
+
             return null;
         }
 
@@ -543,6 +544,7 @@ namespace AutoRest.AzureResourceSchema
             if (property != null)
             {
                 result.Description = RemovePossibleValuesFromDescription(property.Documentation);
+                result.ReadOnly = property.IsReadOnly;
             }
 
             return result;
@@ -577,6 +579,7 @@ namespace AutoRest.AzureResourceSchema
             if (property != null)
             {
                 result.Description = RemovePossibleValuesFromDescription(property.Documentation);
+                result.ReadOnly = property.IsReadOnly;
             }
 
             return result;
@@ -597,6 +600,7 @@ namespace AutoRest.AzureResourceSchema
             if (property != null)
             {
                 result.Description = RemovePossibleValuesFromDescription(property.Documentation);
+                result.ReadOnly = property.IsReadOnly;
             }
 
             return result;
@@ -659,6 +663,7 @@ namespace AutoRest.AzureResourceSchema
             if (property != null)
             {
                 result.Description = property.Documentation;
+                result.ReadOnly = property.IsReadOnly;
 
                 if (property.DefaultValue != null)
                 {
@@ -730,6 +735,7 @@ namespace AutoRest.AzureResourceSchema
             if (property != null)
             {
                 result.Description = RemovePossibleValuesFromDescription(property.Documentation);
+                result.ReadOnly = property.IsReadOnly;
             }
 
             return result;

@@ -534,6 +534,11 @@ namespace AutoRest.AzureResourceSchema
                                         Literal(literalValue)))))));
                 }
 
+                if (enumExpressions.Count == 1)
+                {
+                    return enumExpressions.Single();
+                }
+
                 return InvocationExpression(
                     MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
@@ -603,6 +608,10 @@ namespace AutoRest.AzureResourceSchema
                     if (schema.Required?.Contains(kvp.Key) == true)
                     {
                         flags |= TypePropertyFlags.Required;
+                    }
+                    if (kvp.Value.ReadOnly)
+                    {
+                        flags |= TypePropertyFlags.ReadOnly;
                     }
 
                     properties.Add(GetTypePropertyCreationSyntax(kvp.Key, kvp.Value, flags));
