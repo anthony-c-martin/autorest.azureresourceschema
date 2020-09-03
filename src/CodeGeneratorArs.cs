@@ -36,7 +36,10 @@ namespace AutoRest.AzureResourceSchema
                 {
                     using (var stringWriter = new StringWriter())
                     {
-                        ResourceSchemaWriter.Write(stringWriter, resourceSchemas[resourceProvider]);
+                        if (!ResourceSchemaWriter.GenerateCSharpFile(stringWriter, resourceSchemas[resourceProvider]))
+                        {
+                            continue;
+                        }
 
                         await Write(stringWriter.ToString(), Path.Combine(version, resourceProvider + ".cs"), true);
                     }

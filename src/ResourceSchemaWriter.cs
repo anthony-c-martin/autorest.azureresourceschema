@@ -399,27 +399,17 @@ namespace AutoRest.AzureResourceSchema
                             Argument(IdentifierName(resourceTypeReferenceProperty))})));
         }
 
-        private static ClassDeclarationSyntax GetClassDeclaration(ResourceSchema resourceSchema)
+        private static ClassDeclarationSyntax GetClassDeclaration(IEnumerable<(ResourceDescriptor descriptor, JsonSchema schema)> resources, IEnumerable<(string name, JsonSchema schema)> definitions)
         {
             var classMembers = new List<MemberDeclarationSyntax>();
 
-            var firstDescriptor = resourceSchema.ResourceDefinitions.First().Key;
+            var firstDescriptor = resources.First().descriptor;
             var className = FormatClassName(firstDescriptor);
-
-            var resourcePairs = resourceSchema.ResourceDefinitions
-                .Where(kvp => kvp.Key.ScopeType == ScopeType.ResourceGroup)
-                .Select(kvp => (descriptor: kvp.Key, schema: kvp.Value))
-                .ToArray();
-
-            var definitionPairs = resourceSchema.Definitions
-                .Where(kvp => !kvp.Key.EndsWith("_childResource")) // remove in-line child resources
-                .Select(kvp => (name: kvp.Key, schema: kvp.Value))
-                .ToArray();
 
             classMembers.Add(GetConstStringDeclarationSyntax("ProviderNamespace", firstDescriptor.ProviderNamespace));
             classMembers.Add(GetConstStringDeclarationSyntax("ApiVersion", firstDescriptor.ApiVersion));
 
-            foreach (var (descriptor, _) in resourcePairs)
+            foreach (var (descriptor, _) in resources)
             {
                 classMembers.Add(
                     GetStaticReadOnlyFieldDeclarationAndAssignment(
@@ -430,18 +420,18 @@ namespace AutoRest.AzureResourceSchema
 
             classMembers.Add(GetLazyInstanceField(className));
 
-            classMembers.Add(GetClassConstructor(className, resourcePairs, definitionPairs));
+            classMembers.Add(GetClassConstructor(className, resources, definitions));
 
-            classMembers.Add(GetRegisterMethod(resourcePairs));
+            classMembers.Add(GetRegisterMethod(resources));
 
-            foreach (var (descriptor, _) in resourcePairs)
+            foreach (var (descriptor, _) in resources)
             {
                 classMembers.Add(GetReadOnlyFieldDeclarationSyntax(
                     "ResourceType",
                     FormatResourceTypePropertyName(descriptor)));
             }
             
-            foreach (var (typeName, _) in definitionPairs)
+            foreach (var (typeName, _) in definitions)
             {
                 classMembers.Add(GetReadOnlyFieldDeclarationSyntax(
                     "TypeSymbol",
@@ -782,10 +772,22 @@ namespace AutoRest.AzureResourceSchema
                             Argument(BuildFlagsExpression(flags))})));
         }
 
-        public static void Write(TextWriter writer, ResourceSchema resourceSchema)
+        public static bool GenerateCSharpFile(TextWriter writer, ResourceSchema resourceSchema)
         {
             var resources = resourceSchema.ResourceDefinitions
-                .Where(kvp => kvp.Key.ScopeType == ScopeType.ResourceGroup);
+                .Where(kvp => kvp.Key.ScopeType == ScopeType.ResourceGroup)
+                .Select(kvp => (descriptor: kvp.Key, schema: kvp.Value))
+                .ToArray();
+
+            var definitions = resourceSchema.Definitions
+                .Where(kvp => !kvp.Key.EndsWith("_childResource")) // remove in-line child resources
+                .Select(kvp => (name: kvp.Key, schema: kvp.Value))
+                .ToArray();
+
+            if (!resources.Any())
+            {
+                return false;
+            }
 
             CompilationUnit()
                 .WithUsings(
@@ -829,7 +831,7 @@ namespace AutoRest.AzureResourceSchema
                                     IdentifierName("Types")))
                             .WithMembers(
                                 SingletonList<MemberDeclarationSyntax>(
-                                    GetClassDeclaration(resourceSchema)
+                                    GetClassDeclaration(resources, definitions)
                                     .WithAttributeLists(
                                         SingletonList<AttributeListSyntax>(
                                             AttributeList(
@@ -838,6 +840,8 @@ namespace AutoRest.AzureResourceSchema
                                                         IdentifierName("ResourceTypeRegisterableAttribute"))))))))}))
                 .NormalizeWhitespace()
                 .WriteTo(writer);
+
+            return true;
         }
     }
 }
