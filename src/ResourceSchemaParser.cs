@@ -554,6 +554,10 @@ namespace AutoRest.AzureResourceSchema
         {
             if (!string.IsNullOrWhiteSpace(compositeType.BasePolymorphicDiscriminator))
             {
+                // do these point to the same thing?
+                // definitions[compositeType.Name].DiscriminatorProp = compositeType.BasePolymorphicDiscriminator;
+                definition.DiscriminatorProp = compositeType.BasePolymorphicDiscriminator;
+
                 foreach (var subType in modelTypes.Where(type => type.BaseModelType == compositeType))
                 {
                     // Sub-types are never referenced directly in the Swagger
@@ -561,7 +565,9 @@ namespace AutoRest.AzureResourceSchema
                     // produced resource schema. By calling ParseCompositeType() on the
                     // sub-type we add the sub-type to the resource schema.
                     var polymorphicTypeRef = ParseCompositeType(null, subType, false, definitions, modelTypes);
+
                     definitions[subType.Name].AddProperty(compositeType.BasePolymorphicDiscriminator, JsonSchema.CreateSingleValuedEnum(subType.SerializedName), true);
+                    definitions[subType.Name].BaseType = definition;
 
                     definition.AddOneOf(polymorphicTypeRef);
                 }

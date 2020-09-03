@@ -53,6 +53,10 @@ namespace AutoRest.AzureResourceSchema
 
         public bool ReadOnly { get; set; }
 
+        public string DiscriminatorProp { get; set; }
+
+        public JsonSchema BaseType { get; set; }
+
         /// <summary>
         /// Gets or sets the resource type of this JsonSchema.
         /// </summary>

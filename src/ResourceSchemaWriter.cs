@@ -599,36 +599,106 @@ namespace AutoRest.AzureResourceSchema
                 return GetReferenceSyntax(schema);
             }
 
-            var properties = new List<ExpressionSyntax>();
-            if (schema.Properties != null)
-            {
-                foreach (var kvp in schema.Properties)
-                {
-                    var flags = TypePropertyFlags.None;
-                    if (schema.Required?.Contains(kvp.Key) == true)
-                    {
-                        flags |= TypePropertyFlags.Required;
-                    }
-                    if (kvp.Value.ReadOnly)
-                    {
-                        flags |= TypePropertyFlags.ReadOnly;
-                    }
+            var properties = new Dictionary<string, JsonSchema>(schema.Properties ?? Enumerable.Empty<KeyValuePair<string, JsonSchema>>());
+            var required = new HashSet<string>(schema.Required ?? Enumerable.Empty<string>());
+            JsonSchema additionalProperties = schema.AdditionalProperties;
 
-                    properties.Add(GetTypePropertyCreationSyntax(kvp.Key, kvp.Value, flags));
+            // flatten base types
+            var baseSchema = schema.BaseType;
+            while (baseSchema != null)
+            {
+                if (baseSchema.Properties != null)
+                {
+                    foreach (var kvp in baseSchema.Properties)
+                    {
+                        if (!properties.ContainsKey(kvp.Key))
+                        {
+                            properties[kvp.Key] = kvp.Value;
+                        }
+                    }
                 }
+                if (baseSchema.Required != null)
+                {
+                    foreach (var requiredProp in baseSchema.Required)
+                    {
+                        required.Add(requiredProp);
+                    }
+                }
+                if (additionalProperties == null)
+                {
+                    additionalProperties = baseSchema.AdditionalProperties;
+                }
+                
+                baseSchema = baseSchema.BaseType;
             }
 
-            if (schema.Properties == null && schema.AdditionalProperties == null)
+            if (!properties.Any() && additionalProperties == null)
             {
                 return MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     IdentifierName("LanguageConstants"),
-                    IdentifierName("Object"));
+                    IdentifierName("Any"));
             }
 
-            var additionalPropertiesType = (schema.AdditionalProperties != null) ?
-                GetTypePropertyCreationSyntax("additionalProperties", schema.AdditionalProperties, TypePropertyFlags.None) :
+            var propertyExpressions = new List<ExpressionSyntax>();
+            foreach (var kvp in properties)
+            {
+                var flags = TypePropertyFlags.None;
+                if (required.Contains(kvp.Key) == true)
+                {
+                    flags |= TypePropertyFlags.Required;
+                }
+                if (kvp.Value.ReadOnly)
+                {
+                    flags |= TypePropertyFlags.ReadOnly;
+                }
+
+                propertyExpressions.Add(GetTypePropertyCreationSyntax(kvp.Key, kvp.Value, flags));
+            }
+
+            var additionalPropertiesType = (additionalProperties != null) ?
+                GetTypePropertyCreationSyntax("additionalProperties", additionalProperties, TypePropertyFlags.None) :
                 LiteralExpression(SyntaxKind.NullLiteralExpression);
+            
+            if (schema.OneOf != null && schema.DiscriminatorProp != null)
+            {
+                var oneOfReferences = schema.OneOf.Select(oneOfSchema => 
+                    GetTypePropertyCreationSyntax(
+                        typeName,
+                        oneOfSchema,
+                        TypePropertyFlags.None));
+
+                return ObjectCreationExpression(
+                    IdentifierName("DiscriminatedObjectType"))
+                .WithArgumentList(
+                    ArgumentList(
+                        SeparatedList<ArgumentSyntax>(
+                            new SyntaxNodeOrToken[]{
+                                Argument(
+                                    LiteralExpression(
+                                        SyntaxKind.StringLiteralExpression,
+                                        Literal(typeName))),
+                                Token(SyntaxKind.CommaToken),
+                                Argument(
+                                    LiteralExpression(
+                                        SyntaxKind.StringLiteralExpression,
+                                        Literal(schema.DiscriminatorProp))),
+                                Token(SyntaxKind.CommaToken),
+                                Argument(
+                                    ArrayCreationExpression(
+                                        ArrayType(
+                                            IdentifierName("ITypeProperty"))
+                                        .WithRankSpecifiers(
+                                            SingletonList<ArrayRankSpecifierSyntax>(
+                                                ArrayRankSpecifier(
+                                                    SingletonSeparatedList<ExpressionSyntax>(
+                                                        OmittedArraySizeExpression())))))
+                                    .WithInitializer(
+                                        InitializerExpression(
+                                            SyntaxKind.ArrayInitializerExpression,
+                                            SeparatedList<ExpressionSyntax>(
+                                                oneOfReferences))))})));
+            }
 
             return ObjectCreationExpression(
                 IdentifierName("NamedObjectType"))
@@ -654,7 +724,7 @@ namespace AutoRest.AzureResourceSchema
                                     InitializerExpression(
                                         SyntaxKind.ArrayInitializerExpression,
                                         SeparatedList<ExpressionSyntax>(
-                                            properties)))),
+                                            propertyExpressions)))),
                             Token(SyntaxKind.CommaToken),
                             Argument(additionalPropertiesType)})));
         }
