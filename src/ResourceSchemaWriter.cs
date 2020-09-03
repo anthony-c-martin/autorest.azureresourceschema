@@ -299,6 +299,34 @@ namespace AutoRest.AzureResourceSchema
                             apiVersionArg})));
         }
 
+        private static ExpressionSyntax GetDependsOnSyntax()
+        {
+            return ObjectCreationExpression(
+                IdentifierName("TypeProperty"))
+            .WithArgumentList(
+                ArgumentList(
+                    SeparatedList<ArgumentSyntax>(
+                        new SyntaxNodeOrToken[]{
+                            Argument(
+                                LiteralExpression(
+                                    SyntaxKind.StringLiteralExpression,
+                                    Literal("dependsOn"))),
+                            Token(SyntaxKind.CommaToken),
+                            Argument(
+                                ObjectCreationExpression(
+                                    IdentifierName("TypedArrayType"))
+                                .WithArgumentList(
+                                    ArgumentList(
+                                        SingletonSeparatedList<ArgumentSyntax>(
+                                            Argument(
+                                                MemberAccessExpression(
+                                                    SyntaxKind.SimpleMemberAccessExpression,
+                                                    IdentifierName("LanguageConstants"),
+                                                    IdentifierName("String"))))))),
+                            Token(SyntaxKind.CommaToken),
+                            Argument(BuildFlagsExpression(TypePropertyFlags.WriteOnly))})));
+        }
+
         private static ExpressionSyntax GetResourceTypeCreationSyntax(ResourceDescriptor descriptor, JsonSchema schema)
         {
             var resourceTypeReferenceProperty = FormatResourceTypeReferencePropertyName(descriptor);
@@ -333,6 +361,8 @@ namespace AutoRest.AzureResourceSchema
 
                 properties.Add(GetTypePropertyCreationSyntax(kvp.Key, kvp.Value, flags));
             }
+
+            properties.Add(GetDependsOnSyntax());
 
             var additionalPropertiesType = (schema.AdditionalProperties != null) ?
                 GetTypePropertyCreationSyntax("additionalProperties", schema.AdditionalProperties, TypePropertyFlags.None) :

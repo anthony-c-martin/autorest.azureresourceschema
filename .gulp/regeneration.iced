@@ -92,9 +92,9 @@ task 'regenerate', '', (done) ->
       'Microsoft.VirtualMachineImages': { basePath: 'imagebuilder/resource-manager', tags: ['package-2018-02', 'package-2019-02', 'package-preview-2019-05'] },
       'Microsoft.WindowsIoT': { basePath: 'windowsiot/resource-manager', tags: ['package-2018-02-preview', 'package-2019-06'] },
       'Microsoft.Web': { basePath: 'web/resource-manager', tags: ['package-2018-02-only', 'package-2018-11-only'] },
-      # 'Microsoft.Compute': { basePath: 'compute/resource-manager', tags: ['multiapi'] },
-      # 'Microsoft.Storage': { basePath: 'storage/resource-manager', tags: ['multiapi'] },
-      # 'Microsoft.Network': { basePath: 'network/resource-manager', tags: ['multiapi'] },
+      'Microsoft.Compute': { basePath: 'compute/resource-manager', tags: ['multiapi'] },
+      'Microsoft.Storage': { basePath: 'storage/resource-manager', tags: ['multiapi'] },
+      'Microsoft.Network': { basePath: 'network/resource-manager', tags: ['multiapi'] },
     },
     'language': 'azureresourceschema'
   },done
