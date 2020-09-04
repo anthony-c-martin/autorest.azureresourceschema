@@ -322,7 +322,7 @@ namespace AutoRest.AzureResourceSchema
                                                 MemberAccessExpression(
                                                     SyntaxKind.SimpleMemberAccessExpression,
                                                     IdentifierName("LanguageConstants"),
-                                                    IdentifierName("String"))))))),
+                                                    IdentifierName("ResourceRef"))))))),
                             Token(SyntaxKind.CommaToken),
                             Argument(BuildFlagsExpression(TypePropertyFlags.WriteOnly))})));
         }
