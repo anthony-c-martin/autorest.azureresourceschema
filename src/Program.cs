@@ -20,7 +20,7 @@ namespace AutoRest.AzureResourceSchema
         {
             switch (name)
             {
-                case "AzureResourceSchema": return new AutoRest.AzureResourceSchema.PluginArs();
+                case "AzureResourceSchema": return new BicepTypesPlugin();
             }
             throw new Exception("Unknown plugin: " + name);
         }
@@ -88,7 +88,7 @@ namespace AutoRest.AzureResourceSchema
             };
 
             // process
-            var plugin = new AutoRest.AzureResourceSchema.PluginArs();
+            var plugin = new AutoRest.AzureResourceSchema.BicepTypesPlugin();
             
             using (plugin.Activate())
             {

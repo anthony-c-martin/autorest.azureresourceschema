@@ -1,11 +1,14 @@
-﻿namespace AutoRest.AzureResourceSchema.Models
+﻿using AutoRest.Core.Model;
+using Bicep.Types.Concrete;
+
+namespace AutoRest.AzureResourceSchema.Models
 {
     public class ResourceDefinition
     {
         public ResourceDescriptor Descriptor { get; set; }
 
-        public ResourceName Name { get; set; }
+        public Method DeclaringMethod { get; set; }
 
-        public JsonSchema BaseSchema { get; set; }
+        public ResourceType Type { get; set; }
     }
 }

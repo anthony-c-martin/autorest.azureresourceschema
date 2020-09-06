@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using AutoRest.Core.Model;
 
     public class ProviderDefinition
     {
@@ -9,7 +10,7 @@
 
         public string ApiVersion { get; set; }
 
-        public IDictionary<string, JsonSchema> SchemaDefinitions { get; } = new Dictionary<string, JsonSchema>(StringComparer.OrdinalIgnoreCase);
+        public CodeModel Model { get; set; }
 
         public IList<ResourceDefinition> ResourceDefinitions { get; } = new List<ResourceDefinition>();
     }

@@ -32,14 +32,11 @@ title: none
 pipeline:
   azureresourceschema/imodeler2:
     input: openapi-document/multi-api/identity
-    output-artifact: code-model-v1
     scope: azureresourceschema
   azureresourceschema/commonmarker:
     input: imodeler2
-    output-artifact: code-model-v1
   azureresourceschema/cm/transform:
     input: commonmarker
-    output-artifact: code-model-v1
   azureresourceschema/cm/emitter:
     input: transform
     scope: scope-cm/emitter
