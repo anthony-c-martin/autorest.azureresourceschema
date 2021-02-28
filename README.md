@@ -21,59 +21,37 @@ This project uses a git submodule for dependent code. When cloning this reposito
 
 # AutoRest extension configuration
 
-``` yaml
-load-priority: 1000
-pipeline-model: v3
-```
+```yaml
+version: 3.0.6320
+use-extension:
+  "@autorest/modelerfour": "4.16.2"
 
-``` yaml
-title: none
+modelerfour:
+  # this runs a pre-namer step to clean up names
+  prenamer: true
+  # this will flatten modelers marked with 'x-ms-client-flatten'
+  flatten-models: true
+  # this will flatten parameters marked with 'x-ms-client-flatten'
+  flatten-payloads: true
+  # this will make the content-type parameter always specified
+  always-create-content-type-parameter: true
+  # enables parameter grouping via x-ms-parameter-grouping
+  group-parameters: true
+  # don't return errors for deduplication failures
+  additional-checks: false
+  lenient-model-deduplication: true
 
 pipeline:
-  azureresourceschema/imodeler2:
-    input: openapi-document/multi-api/identity
-    output-artifact: code-model-v1
-    scope: azureresourceschema
-  azureresourceschema/commonmarker:
-    input: imodeler2
-    output-artifact: code-model-v1
-  azureresourceschema/cm/transform:
-    input: commonmarker
-    output-artifact: code-model-v1
-  azureresourceschema/cm/emitter:
-    input: transform
-    scope: scope-cm/emitter
-  azureresourceschema/generate:
-    plugin: azureresourceschema
-    input: cm/transform
-    output-artifact: source-file-azureresourceschema
-  azureresourceschema/transform:
-    input: generate
-    output-artifact: source-file-azureresourceschema
-    scope: scope-transform-string
+  azureresourceschema: # <- name of plugin
+    input: modelerfour/identity
+    output-artifact: azureresourceschema-files
+
   azureresourceschema/emitter:
-    input: transform
-    scope: scope-azureresourceschema/emitter
+    input: azureresourceschema
+    scope: azureresourceschema-scope/emitter
 
-scope-azureresourceschema/emitter:
-  input-artifact: source-file-azureresourceschema
-  output-uri-expr: $key
+azureresourceschema-scope/emitter:
+  input-artifact: azureresourceschema-files
 
-scope-transform-string:
-  is-object: false
-
-output-artifact:
-- source-file-azureresourceschema
-
-scope-cm/emitter:
-  input-artifact: code-model-v1
-  is-object: true
-  output-uri-expr: |
-    "code-model-v1"
-
-scope-cm-yaml/emitter:
-  input-artifact: code-model-v1-yaml
-  is-object: true
-  output-uri-expr: |
-    "code-model-v1-yaml"
+output-artifact: azureresourceschema-files
 ```
