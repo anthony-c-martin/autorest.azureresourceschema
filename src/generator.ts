@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ChoiceSchema, CodeModel, HttpMethod, HttpParameter, HttpRequest, HttpResponse, ImplementationLocation, ObjectSchema, Operation, Parameter, ParameterLocation, Protocol, Request, Response, Schema, SchemaResponse, StatusCode } from "@autorest/codemodel";
+import { ChoiceSchema, CodeModel, HttpMethod, HttpParameter, HttpRequest, HttpResponse, ImplementationLocation, Operation, Parameter, ParameterLocation, Request, Response, Schema, SchemaResponse } from "@autorest/codemodel";
 import { Host } from "@autorest/extension-base";
-import { generateProviderTypes } from './types';
-import { ProviderDefinition, ResourceDescriptor, ScopeType } from './models';
+import { ProviderDefinition, ResourceDefinition, ResourceDescriptor, ScopeType } from './models';
+import { BuiltInType, BuiltInTypeKind, ObjectProperty, ObjectPropertyFlags, StringLiteralType, TypeBase, TypeFactory, TypeReference } from "./types";
 
-function logWarning(message: string) {
+export function logWarning(message: string) {
   // TODO
 }
 
@@ -61,6 +61,10 @@ function getGetSchema(operation?: Operation) {
   };
 }
 
+function combineParameters(operation: Operation, request: Request) {
+  return [...(operation.parameters || []), ...(request.parameters || [])];
+}
+
 function getPutSchema(operation?: Operation) {
   const requests = operation?.requests ?? [];
   const validRequests = requests.filter(r => (r.protocol.http as HttpRequest)?.method === HttpMethod.Put);
@@ -70,11 +74,12 @@ function getPutSchema(operation?: Operation) {
   }
 
   for (const request of validRequests) {
-    const parameters = [...(operation.parameters || []), ...(request.parameters || [])];
+    const parameters = combineParameters(operation, request);
     const bodyParameters = parameters.filter(p => (p.protocol.http as HttpParameter)?.in === ParameterLocation.Body);
     if (bodyParameters.length > 0) {
       return { 
         request: (request.protocol.http as HttpRequest),
+        parameters,
         schema: bodyParameters[0].schema,
       };
     }
@@ -82,15 +87,16 @@ function getPutSchema(operation?: Operation) {
 
   return { 
     request: (validRequests[0].protocol.http as HttpRequest),
+    parameters: combineParameters(operation, validRequests[0]),
   };
 }
 
 function generateTypes(codeModel: CodeModel, host: Host, apiVersion: string) {
-  const providerDefinitions: {[key: string]: ProviderDefinition} = {};
+  const providerDefinitions: Record<string, ProviderDefinition> = {};
   const operations = codeModel.operationGroups.flatMap(x => x.operations);
 
-  const getOperationsByPath: {[key: string]: Operation} = {};
-  const putOperationsByPath: {[key: string]: Operation} = {};
+  const getOperationsByPath: Record<string, Operation> = {};
+  const putOperationsByPath: Record<string, Operation> = {};
   operations.forEach(operation => {
     const requests = getHttpRequests(operation.requests);
     const getRequest = requests.filter(r => r.method === HttpMethod.Get)[0];
@@ -113,7 +119,7 @@ function generateTypes(codeModel: CodeModel, host: Host, apiVersion: string) {
       continue;
     }
 
-    const { success, failureReason, descriptors } = parseMethod(putData.request.path, [...(putOperation.parameters || []), ...(putData.request.parameters || [])], apiVersion);
+    const { success, failureReason, descriptors } = parseMethod(putData.request.path, putData.parameters, apiVersion);
     if (!success) {
       logWarning(`Skipping path '${putData.request.path}': ${failureReason}`);
       continue;
@@ -133,6 +139,7 @@ function generateTypes(codeModel: CodeModel, host: Host, apiVersion: string) {
       providerDefinition.resources.push({
         descriptor,
         putRequest: putData.request,
+        putParameters: putData.parameters,
         putSchema: putData.schema,
         getSchema: getData?.schema,
       });
@@ -275,4 +282,137 @@ function isPathVariable(pathSegment: string) {
 
 function trimParamBraces(pathSegment: string) {
   return pathSegment.substr(1, pathSegment.length - 2);
+}
+
+function parseNameSchema(factory: TypeFactory, descriptor: ResourceDescriptor, request: HttpRequest, parameters: Parameter[]) {
+  const finalProvidersMatch = request.path.match(parentScopePrefix)?.last;
+  const routingScope = trimScope(request.path.substr(finalProvidersMatch!.length));
+
+  // get the resource name parameter, e.g. {fooName}
+  var resNameParam = routingScope.substr(routingScope.lastIndexOf('/') + 1);
+
+  if (isPathVariable(resNameParam)) {
+    // strip the enclosing braces
+    resNameParam = trimParamBraces(resNameParam);
+
+    // look up the type
+    var param = parameters.filter(p => p.language.default.name === resNameParam)[0];
+    if (!param) {
+      return { success: false, failureReason: `Unable to locate parameter with name '${resNameParam}'`, name: null };
+    }
+
+    var nameType = parseType(factory, param.schema, param.schema);
+
+    return { success: true, failureReason: '', name: nameType };
+  }
+
+  if (!/^[a-zA-Z0-9]*$/.test(resNameParam)) {
+    return { success: false, failureReason: `Unable to process non-alphanumeric name '${resNameParam}'`, name: null };
+  }
+
+  return { success: true, failureReason: '', name: createConstantResourceName(factory, descriptor, resNameParam), };
+}
+
+function createConstantResourceName(factory: TypeFactory, descriptor: ResourceDescriptor, nameValue: string) {
+  if (isRootType(descriptor)) {
+    return factory.addType<StringLiteralType>({ value: nameValue });
+  }
+
+  return factory.lookupBuiltInType(BuiltInTypeKind.String);
+}
+
+function getFullyQualifiedType(descriptor: ResourceDescriptor) {
+  return [descriptor.namespace, ...descriptor.typeSegments].join('/');
+}
+
+function isRootType(descriptor: ResourceDescriptor) {
+  return descriptor.typeSegments.length === 1;
+}
+
+function collapseDefinitionScopes(resources: ResourceDefinition[]) {
+  const definitionsByName: Record<string, ResourceDefinition> = {};
+  for (const resource of resources) {
+    const name = resource.descriptor.constantName ?? '';
+    if (definitionsByName[name]) {
+      const curDescriptor = definitionsByName[name].descriptor;
+      const newDescriptor = resource.descriptor;
+
+      definitionsByName[name] = {
+        ...definitionsByName[name],
+        descriptor: {
+          ...curDescriptor,
+          scopeType: curDescriptor.scopeType | newDescriptor.scopeType,
+        },
+      };
+    } else {
+      definitionsByName[name] = resource;
+    }
+  }
+
+  return Object.values(definitionsByName);
+}
+
+function groupByType(resources: ResourceDefinition[]) {
+  return resources.reduce((prev, cur) => {
+    const key = getFullyQualifiedType(cur.descriptor).toLowerCase();
+    prev[key] = [...(prev[key] ?? []), cur];
+
+    return prev;
+  }, {} as Record<string, ResourceDefinition[]>);
+}
+
+function collapseDefinitions(resources: ResourceDefinition[]) {
+  const resourcesByType = groupByType(resources);
+  const collapsedResources = Object.values(resourcesByType).flatMap(collapseDefinitionScopes);
+
+  return groupByType(collapsedResources);
+}
+
+function getStandardizedResourceProperties(factory: TypeFactory, descriptor: ResourceDescriptor, resourceName: TypeReference): Record<string, ObjectProperty> {
+  var type = factory.addType<StringLiteralType>({ value: getFullyQualifiedType(descriptor), });
+
+  return {
+    id: { type: factory.lookupBuiltInType(BuiltInTypeKind.String), flags: ObjectPropertyFlags.ReadOnly | ObjectPropertyFlags.DeployTimeConstant, },
+    name: { type: resourceName, flags: ObjectPropertyFlags.Required | ObjectPropertyFlags.DeployTimeConstant, },
+    type: { type: type, flags: ObjectPropertyFlags.ReadOnly | ObjectPropertyFlags.DeployTimeConstant, },
+    apiVersion: { type: factory.addType<StringLiteralType>({ value: descriptor.apiVersion }), flags: ObjectPropertyFlags.ReadOnly | ObjectPropertyFlags.DeployTimeConstant, },
+  };
+}
+
+function generateProviderTypes(codeModel: CodeModel, host: Host, definition: ProviderDefinition) {
+  const definitionsByType = collapseDefinitions(definition.resources);
+  const factory = new TypeFactory();
+ 
+  for (const fullyQualifiedType in definitionsByType) {
+    const definitions = definitionsByType[fullyQualifiedType];
+    if (definitions.length > 1) {
+      logWarning(`Skipping resource type ${fullyQualifiedType} under path '${definitions[0].putRequest.path}': Found multiple definitions for the same type`);
+      continue;
+    }
+
+    const { descriptor, putRequest, putParameters, putSchema, getSchema, } = definitions[0];
+    const { success, failureReason, name } = parseNameSchema(factory, descriptor, putRequest, putParameters);
+
+    if (!success || !name) {
+      logWarning(`Skipping resource type ${fullyQualifiedType} under path '${putRequest.path}': ${failureReason}`);
+      continue;
+    }
+
+    if (!putSchema) {
+      logWarning(`Skipping resource type ${fullyQualifiedType} under path '${putRequest.path}': No resource body defined`);
+      continue;
+    }
+
+    var resourceProperties = getStandardizedResourceProperties(factory, descriptor, name);
+    //var resourceDefinition = createObject(factory, getFullyQualifiedType(descriptor), putSchema, resourceProperties);
+
+  }
+
+  host.WriteFile(
+    `${definition.apiVersion}/${definition.namespace}.json`,
+    JSON.stringify(factory.types, null, 2));
+}
+
+function parseType(factory: TypeFactory, putSchema: Schema, getSchema: Schema): TypeReference {
+  return factory.lookupBuiltInType(BuiltInTypeKind.String);
 }
