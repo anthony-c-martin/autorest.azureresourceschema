@@ -59,7 +59,7 @@ export interface ObjectProperty {
 export interface ObjectType extends TypeBase {
   name: string;
   properties: Record<string, ObjectProperty>;
-  additionalProperties: TypeReference;
+  additionalProperties?: TypeReference;
 }
 
 export interface DiscriminatedObjectType extends TypeBase {

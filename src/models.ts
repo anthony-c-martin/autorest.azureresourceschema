@@ -1,4 +1,4 @@
-import { CodeModel, HttpRequest, Operation, Parameter, Schema } from "@autorest/codemodel";
+import { CodeModel, HttpRequest, ObjectSchema, Parameter } from "@autorest/codemodel";
 
 export enum ScopeType {
   Unknown = 0,
@@ -28,6 +28,6 @@ export interface ResourceDefinition {
   descriptor: ResourceDescriptor;
   putRequest: HttpRequest;
   putParameters: Parameter[];
-  putSchema?: Schema;
-  getSchema?: Schema;
+  putSchema?: ObjectSchema;
+  getSchema?: ObjectSchema;
 }
